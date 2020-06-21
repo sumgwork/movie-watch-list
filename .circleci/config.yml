@@ -120,7 +120,7 @@ workflows:
   build_and_deploy:
     jobs:
       - build
-      - linting
+      - linting:
           requires:
             - build
           filters:
@@ -129,7 +129,7 @@ workflows:
                 - dev
                 - stage
                 - master
-      - prettier
+      - prettier:
           requires:
             - build
           filters:
