@@ -1,17 +1,123 @@
 version: 2.1
-orbs:
-  node: circleci/node@1.1.6
+
 jobs:
-  build-and-test:
-    executor:
-      name: node/default
+  build:
+    docker:
+      - image: circleci/node:latest
+    working_directory: ~/repo # this is the directory where circleci docker image will be added
     steps:
       - checkout
-      - node/with-cache:
-          steps:
-            - run: npm install
-            - run: npm test
+      - run:
+          name: Show current branch
+          command: echo ${CURRENT_BRANCH} # Comes from circle ci
+      - restore_cache:
+          key:
+            - app-{{ checksum "package.json" }} # If exists
+            - app- # if doesn't exist, we will save the cache
+      - run:
+          name: Install dependencies
+          command: npm install
+      - save_cache:
+          paths:
+            - node_modules
+          key: app-{{ checksum "package.json" }} # save node_modules in cache
+
+  deploy-to-aws-s3:
+    docker:
+      - image: circleci/node:latest
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: Show current branch
+          command: echo ${CURRENT_BRANCH} # Comes from circle ci
+      - run:
+          name: Install AWS CLI
+          working_directory: /
+          command: |
+            sudo apt-get -y -qq update
+            sudo apt-get install -y awscli
+            sudo apt-get install -y python-pip python-dev build-essential
+      - run:
+          name: Build project
+          command: |
+            npm install
+            npm run build
+            cd build
+            zip ../build.zip -r *.[^.]*
+            echo "Build successful"
+      - run:
+          name: Deploy to AWS S3
+          command: |
+            if [ "${CURRENT_BRANCH}" == "master" ]
+            then
+              aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_BUCKET_PROD} --delete
+            elif [ "${CURRENT_BRANCH}" == "stage" ]
+            then
+              aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_BUCKET_STAGE} --delete
+            elif [ "${CURRENT_BRANCH}" == "dev" ]
+            then
+              aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_BUCKET_DEV} --delete
+            fi
+
+  deploy-to-aws-cloudfront:
+    docker:
+      - image: circleci/node:latest
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: Show current branch
+          command: echo ${CURRENT_BRANCH} # Comes from circle ci
+      - run:
+          name: Install AWS CLI
+          working_directory: /
+          command: |
+            sudo apt-get -y -qq update
+            sudo apt-get install -y awscli
+            sudo apt-get install -y python-pip python-dev build-essential
+      - run:
+          name: Build project
+          command: |
+            npm install
+            npm run build
+            cd build
+            zip ../build.zip -r *.[^.]*
+            echo "Build successful"
+      - run:
+          name: Invalidate and Deploy to AWS Cloudfront
+          command: |
+            aws configure set preview.cloudfront
+            if [ "${CURRENT_BRANCH}" == "master" ]
+            then
+              aws cloudfront create-invalidation  --distribution-id ${AWS_DISTRIBUTION_ID_PROD} --paths /\*
+            elif [ "${CURRENT_BRANCH}" == "stage" ]
+            then
+              aws cloudfront create-invalidation  --distribution-id ${AWS_DISTRIBUTION_ID_STAGE} --paths /\*
+            elif [ "${CURRENT_BRANCH}" == "dev" ]
+            then
+              aws cloudfront create-invalidation  --distribution-id ${AWS_DISTRIBUTION_ID_DEV} --paths /\*
+            fi
+
 workflows:
-    build-and-test:
-      jobs:
-        - build-and-test
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy-to-aws-s3
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - dev
+                - stage
+                - master
+      - deploy-to-aws-cloudfront
+          requires:
+            - deploy-to-aws-s3
+          filters:
+            branches:
+              only:
+                - dev
+                - stage
+                - master                
