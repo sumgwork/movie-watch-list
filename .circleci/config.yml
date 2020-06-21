@@ -51,7 +51,7 @@ jobs:
       - *show-current-branch-name
       - *restore-cache
       - *install-dependencies
-      - *save_cache
+      - *save-cache
 
   deploy-to-aws-s3:
     executor: app-executor
@@ -77,10 +77,10 @@ jobs:
   deploy-to-aws-cloudfront:
     executor: app-executor
     steps:
-      - checkout
-      - *show-current-branch-name
-      - *install-aws-cli
-      - *build-project
+      # - checkout
+      # - *show-current-branch-name
+      # - *install-aws-cli
+      # - *build-project
       - run:
           name: Invalidate and Deploy to AWS Cloudfront
           command: |
