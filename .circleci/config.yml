@@ -1,3 +1,6 @@
+orbs:
+  slack: circleci/slack@3.4.2 # Module for CircleCI integration with Slack
+
 version: 2.1
 
 executors: # Putting docker configurtion in one place
@@ -5,6 +8,10 @@ executors: # Putting docker configurtion in one place
     docker:
       - image: circleci/node:latest
     working_directory: ~/repo # this is the directory where circleci docker image will be added
+  slack-executor:
+    docker:
+      - image: cibuilds/base:latest # This is an cibuild image
+    resource_class: small
 
 aliases: #commands which are executed at multiple places
   - &show-current-branch-name
@@ -116,6 +123,15 @@ jobs:
               aws cloudfront create-invalidation  --distribution-id ${AWS_DISTRIBUTION_ID_DEV} --paths /\*
             fi
 
+  notify-via-slack:
+    executor: slack-executor
+    steps:
+      - slack/notify:
+          message: '${CIRCLE_BRANCH} branch deployment to AWS S3 and Cloudfront is complete.'
+          webhook: $CIRCLECI_SLACK_WEBHOOK
+      - slack/status:
+          webhook: $CIRCLECI_SLACK_WEBHOOK
+
 workflows:
   build_and_deploy:
     jobs:
@@ -151,6 +167,15 @@ workflows:
       - deploy-to-aws-cloudfront:
           requires:
             - deploy-to-aws-s3
+          filters:
+            branches:
+              only:
+                - dev
+                - stage
+                - master
+      - notify-via-slack:
+          requires:
+            - deploy-to-aws-cloudfront
           filters:
             branches:
               only:
