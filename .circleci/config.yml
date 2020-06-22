@@ -139,21 +139,9 @@ workflows:
       - linting:
           requires:
             - build
-          filters:
-            branches:
-              only:
-                - dev
-                - stage
-                - master
       - prettier:
           requires:
             - build
-          filters:
-            branches:
-              only:
-                - dev
-                - stage
-                - master
       - deploy-to-aws-s3:
           requires:
             - linting
