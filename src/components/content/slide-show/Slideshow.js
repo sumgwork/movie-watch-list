@@ -1,19 +1,26 @@
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import React, { useEffect, useState } from 'react';
+
 import './Slideshow.scss';
 
 const Slideshow = (props) => {
   const { images, auto, showArrows } = props;
   const [state, setState] = useState({
+    slideShow: images[0],
     slideIndex: 0,
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sliderInterval, setSliderInterval] = useState(0);
 
-  const { slideIndex } = state;
+  const { slideShow, slideIndex } = state;
   let currentSlideIndex = 0;
 
   useEffect(() => {
+    setState({
+      ...state,
+      slideIndex: 0,
+      slideShow: images[0],
+    });
     if (auto) {
       const timeInterval = setInterval(() => {
         autoMoveSlide();
@@ -27,7 +34,7 @@ const Slideshow = (props) => {
     }
 
     // eslint-disable-next-line
-  }, []);
+  }, [images]);
 
   const autoMoveSlide = () => {
     let lastIndex = 0;
@@ -36,6 +43,7 @@ const Slideshow = (props) => {
     setState((prev) => ({
       ...prev,
       slideIndex: currentSlideIndex,
+      slideShow: images[currentSlideIndex],
     }));
   };
 
@@ -59,6 +67,7 @@ const Slideshow = (props) => {
     setState((prev) => ({
       ...prev,
       slideIndex: index,
+      slideShow: images[index],
     }));
   };
 
@@ -83,7 +92,7 @@ const Slideshow = (props) => {
   return (
     <>
       <div className="slider">
-        <div className="slider-slides">{images && images.length && images[slideIndex] && <div className="slider-image" style={{ backgroundImage: `url(${images[slideIndex].url})` }}></div>}</div>
+        <div className="slider-slides">{images && images.length && slideShow && <div className="slider-image" style={{ backgroundImage: `url(${slideShow.url})` }}></div>}</div>
         <Indicators currentSlide={slideIndex} />
         {showArrows ? <RenderArrows /> : null}
       </div>
