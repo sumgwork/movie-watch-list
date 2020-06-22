@@ -65,7 +65,6 @@ jobs:
     steps:
       - checkout
       - *show-current-branch-name
-      - *restore-cache
       - run:
           name: Run linting
           command: npm run lint
@@ -75,7 +74,6 @@ jobs:
     steps:
       - checkout
       - *show-current-branch-name
-      - *restore-cache
       - run:
           name: Run prettier check
           command: npm run prettier:check
@@ -135,19 +133,12 @@ jobs:
 workflows:
   build_and_deploy:
     jobs:
-      - build
-      - linting:
+      - linting
+      - prettier
+      - build:
           requires:
-            - build
-          filters:
-            branches:
-              only:
-                - dev
-                - stage
-                - master
-      - prettier:
-          requires:
-            - build
+            - linting
+            - prettier
           filters:
             branches:
               only:
@@ -156,8 +147,7 @@ workflows:
                 - master
       - deploy-to-aws-s3:
           requires:
-            - linting
-            - prettier
+            - build
           filters:
             branches:
               only:
