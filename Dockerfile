@@ -1,10 +1,19 @@
 # Stage 0, "build-stage", based on Node.js, to build and compile the frontend
 FROM tiangolo/node-frontend:10 as build-stage
 WORKDIR /app
+
+ARG REACT_APP_API_SECRET
+ARG REACT_APP_SENTRY_DSN
+
+ENV REACT_APP_API_SECRET=$REACT_APP_API_SECRET
+ENV REACT_APP_SENTRY_DSN=$REACT_APP_SENTRY_DSN
+
 COPY package*.json /app/
 RUN npm install
+
 COPY ./ /app/
 RUN npm run build
+
 # Stage 1, based on Nginx, to have only the compiled app, ready for production with Nginx
 FROM nginx:alpine
 LABEL author="Sumit Govil"
