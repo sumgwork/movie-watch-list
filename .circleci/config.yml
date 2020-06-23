@@ -180,24 +180,25 @@ workflows:
             - build
       - unit-test:
           requires:
-            - linting
-            - prettier
+            - build
       - publish-to-docker-hub:
           requires:
+            - prettier
+            - linting
             - unit-test
           filters:
             branches:
               only:
-                - dev
                 - stage
                 - master
       - deploy-to-aws-s3:
           requires:
+            - prettier
+            - linting
             - unit-test
           filters:
             branches:
               only:
-                - dev
                 - stage
                 - master
       - deploy-to-aws-cloudfront:
@@ -206,8 +207,6 @@ workflows:
           filters:
             branches:
               only:
-                - dev
-                - stage
                 - master
       - notify-via-slack:
           requires:
