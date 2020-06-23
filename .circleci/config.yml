@@ -189,6 +189,7 @@ workflows:
           filters:
             branches:
               only:
+                - dev
                 - stage
                 - master
       - deploy-to-aws-s3:
@@ -211,6 +212,7 @@ workflows:
       - notify-via-slack:
           requires:
             - deploy-to-aws-cloudfront
+            - publish-to-docker-hub
           filters:
             branches:
               only:
