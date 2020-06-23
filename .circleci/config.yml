@@ -12,6 +12,11 @@ executors: # Putting docker configurtion in one place
     docker:
       - image: cibuilds/base:latest # This is an cibuild image
     resource_class: small
+  docker-publisher:
+    environment:
+      IMAGE_NAME: sumitgovilstudy/movie-watch-list
+    docker:
+      - image: circleci/buildpack-deps:stretch
 
 aliases: #commands which are executed at multiple places
   - &show-current-branch-name
@@ -49,7 +54,6 @@ aliases: #commands which are executed at multiple places
         cd build
         zip ../build.zip -r *.[^.]*
         echo "Build successful"
-
 jobs:
   build:
     executor: app-executor
@@ -110,7 +114,6 @@ jobs:
             then
               aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_BUCKET_DEV} --delete
             fi
-
   deploy-to-aws-cloudfront:
     executor: app-executor
     steps:
@@ -132,7 +135,6 @@ jobs:
             then
               aws cloudfront create-invalidation  --distribution-id ${AWS_DISTRIBUTION_ID_DEV} --paths /\*
             fi
-
   notify-via-slack:
     executor: slack-executor
     steps:
@@ -142,6 +144,26 @@ jobs:
       - slack/status:
           webhook: $CIRCLECI_SLACK_WEBHOOK
 
+  publish-to-docker-hub:
+    executor: docker-publisher
+    steps:
+      - checkout
+      - setup_remote_docker
+      - *restore-cache
+      - run: docker login -u "${DOCKER_HUB_USER}" -p "${DOCKER_HUB_PASSWORD}"
+      - run: docker build -t ${IMAGE_NAME}:latest .
+      - run:
+          name: Tag and push to docker hub
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]
+            then
+              docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:stable-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:stable-${CIRCLE_BUILD_NUM}
+            elif [ "${CIRCLE_BRANCH}" == "stage" ]
+            then
+              docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:staging-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:staging-${CIRCLE_BUILD_NUM}
+            else
+              docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:dev-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:dev-${CIRCLE_BUILD_NUM}
+            fi
 workflows:
   build_and_deploy:
     jobs:
@@ -154,15 +176,25 @@ workflows:
             - build
       - unit-test:
           requires:
-            - linting
-            - prettier
-      - deploy-to-aws-s3:
+            - build
+      - publish-to-docker-hub:
           requires:
+            - prettier
+            - linting
             - unit-test
           filters:
             branches:
               only:
-                - dev
+                - stage
+                - master
+      - deploy-to-aws-s3:
+          requires:
+            - prettier
+            - linting
+            - unit-test
+          filters:
+            branches:
+              only:
                 - stage
                 - master
       - deploy-to-aws-cloudfront:
@@ -171,12 +203,14 @@ workflows:
           filters:
             branches:
               only:
-                - dev
-                - stage
                 - master
       - notify-via-slack:
           requires:
             - deploy-to-aws-cloudfront
+            - deploy-to-aws-s3
+            - prettier
+            - linting
+            - unit-test
           filters:
             branches:
               only:

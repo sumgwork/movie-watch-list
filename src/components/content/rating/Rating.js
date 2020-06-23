@@ -9,12 +9,8 @@ const Rating = ({ rating, totalStars, className }) => {
 
   useEffect(() => {
     setNumberOfStars([...Array(totalStars).keys()].map((i) => i + 1));
-    let percentage;
-    if (rating <= 5) {
-      percentage = (rating / 5) * 100;
-    } else {
-      percentage = (rating / 10) * 100;
-    }
+    const percentage = (rating / 10) * 100;
+
     const startPercentage = `${Math.floor(percentage)}%`;
     ratingRef.current.style.width = startPercentage;
   }, [rating, totalStars]);
