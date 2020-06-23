@@ -212,7 +212,10 @@ workflows:
       - notify-via-slack:
           requires:
             - deploy-to-aws-cloudfront
-            - publish-to-docker-hub
+            - deploy-to-aws-s3
+            - prettier
+            - linting
+            - unit-test
           filters:
             branches:
               only:
