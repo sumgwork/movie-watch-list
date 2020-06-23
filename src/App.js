@@ -1,26 +1,56 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import PropTypes from 'prop-types';
+import React, { useEffect } from 'react';
+import { connect } from 'react-redux';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import './App.scss';
+import Details from './components/content/details/Details';
+import ErrorBoundary from './components/error/ErrorBoundary';
+import Header from './components/header/Header';
+import Main from './components/main/Main';
+import { appRoutes } from './redux/actions/routes';
 
-function App() {
+const App = (props) => {
+  const { appRoutes } = props;
+  const routesArray = [
+    {
+      id: 1,
+      path: '/',
+      component: Main,
+    },
+    {
+      id: 2,
+      path: '/:id/:name/details',
+      component: Details,
+    },
+  ];
+
+  useEffect(() => {
+    appRoutes(routesArray);
+  }, [routesArray, appRoutes]);
+
+  useEffect(() => {
+    document.title = process.env.NODE_ENV === 'production' ? 'Movie Watch List' : `Movie Watch List | ${process.env.NODE_ENV}`;
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <ErrorBoundary>
+        <Header />
+        {/* All errors will be thrown from error component */}
+      </ErrorBoundary>
+      <div className="app">
+        <Switch>
+          {routesArray.map((data) => (
+            <Route key={data.id} exact path={data.path} component={data.component} {...props} />
+          ))}
+        </Switch>
+      </div>
+    </Router>
   );
-}
+};
 
-export default App;
+App.propTypes = {
+  appRoutes: PropTypes.func,
+};
+
+export default connect(null, { appRoutes })(App);
