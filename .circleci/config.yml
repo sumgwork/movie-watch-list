@@ -12,6 +12,11 @@ executors: # Putting docker configurtion in one place
     docker:
       - image: cibuilds/base:latest # This is an cibuild image
     resource_class: small
+  docker-publisher:
+    environment:
+      IMAGE_NAME: sumitgovilstudy/movie-watch-list
+    docker:
+      - image: circleci/buildpack-deps:stretch
 
 aliases: #commands which are executed at multiple places
   - &show-current-branch-name
@@ -142,6 +147,27 @@ jobs:
       - slack/status:
           webhook: $CIRCLECI_SLACK_WEBHOOK
 
+  publish-to-docker-hub:
+    executor: docker-publisher
+    steps:
+      - checkout
+      - setup_remote_docker
+      - *restore-cache
+      - run: docker login -u "${DOCKER_HUB_USER}" -p "${DOCKER_HUB_PASSWORD}"
+      - run: docker build -t ${IMAGE_NAME}:latest .
+      - run:
+          name: Tag and push to docker hub
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]
+            then
+              docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:stable-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:stable-${CIRCLE_BUILD_NUM}
+            elif [ "${CIRCLE_BRANCH}" == "staging" ]
+            then
+              docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:staging-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:staging-${CIRCLE_BUILD_NUM}
+            else
+              docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:dev-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:dev-${CIRCLE_BUILD_NUM}
+            fi
+
 workflows:
   build_and_deploy:
     jobs:
@@ -156,6 +182,15 @@ workflows:
           requires:
             - linting
             - prettier
+      - publish-to-docker-hub:
+          requires:
+            - unit-test
+          filters:
+            branches:
+              only:
+                - develop
+                - staging
+                - master
       - deploy-to-aws-s3:
           requires:
             - unit-test
