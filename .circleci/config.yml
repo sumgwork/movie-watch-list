@@ -189,7 +189,6 @@ workflows:
           filters:
             branches:
               only:
-                - dev
                 - stage
                 - master
       - deploy-to-aws-s3:
