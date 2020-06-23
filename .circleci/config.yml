@@ -54,7 +54,6 @@ aliases: #commands which are executed at multiple places
         cd build
         zip ../build.zip -r *.[^.]*
         echo "Build successful"
-
 jobs:
   build:
     executor: app-executor
@@ -115,7 +114,6 @@ jobs:
             then
               aws --region ${AWS_REGION} s3 sync ~/repo/build s3://${AWS_BUCKET_DEV} --delete
             fi
-
   deploy-to-aws-cloudfront:
     executor: app-executor
     steps:
@@ -137,7 +135,6 @@ jobs:
             then
               aws cloudfront create-invalidation  --distribution-id ${AWS_DISTRIBUTION_ID_DEV} --paths /\*
             fi
-
   notify-via-slack:
     executor: slack-executor
     steps:
@@ -167,7 +164,6 @@ jobs:
             else
               docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:dev-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:dev-${CIRCLE_BUILD_NUM}
             fi
-
 workflows:
   build_and_deploy:
     jobs:
