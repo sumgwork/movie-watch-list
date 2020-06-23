@@ -161,7 +161,7 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]
             then
               docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:stable-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:stable-${CIRCLE_BUILD_NUM}
-            elif [ "${CIRCLE_BRANCH}" == "staging" ]
+            elif [ "${CIRCLE_BRANCH}" == "stage" ]
             then
               docker tag ${IMAGE_NAME}:latest ${IMAGE_NAME}:staging-${CIRCLE_BUILD_NUM} && docker push ${IMAGE_NAME}:staging-${CIRCLE_BUILD_NUM}
             else
@@ -188,8 +188,8 @@ workflows:
           filters:
             branches:
               only:
-                - develop
-                - staging
+                - dev
+                - stage
                 - master
       - deploy-to-aws-s3:
           requires:
