@@ -61,6 +61,7 @@ const Header = (props) => {
         throw error;
       }
     }
+    // eslint-disable-next-line
   }, [path, url, routesArray, pathUrl]);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ const Header = (props) => {
       setError({ message: errors.message, statusCode: errors.statusCode });
       throw error;
     }
+    // eslint-disable-next-line
   }, [errors]);
 
   useEffect(() => {
