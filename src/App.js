@@ -28,6 +28,10 @@ const App = (props) => {
     appRoutes(routesArray);
   }, [routesArray, appRoutes]);
 
+  useEffect(() => {
+    document.title = process.env.NODE_ENV === 'production' ? 'Movie Watch List' : `Movie Watch List | ${process.env.NODE_ENV}`;
+  }, []);
+
   return (
     <Router>
       <ErrorBoundary>
